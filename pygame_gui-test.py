@@ -1,7 +1,8 @@
 import pygame
 import pygame_gui
-from math import sin, cos, pow, exp, pi
+from math import *
 import numpy
+import CurveDrawer
 
 def process_input(input):
     # x_fun = numpy.identity
@@ -13,7 +14,7 @@ def process_input(input):
     t = 0
 
     parts = input.split(';')
-
+  
     n_args = len(parts)
     if n_args >= 1 and parts[0] != "":
         x_fun = eval(parts[0])
@@ -63,7 +64,9 @@ formula_input = pygame_gui.elements.UITextEntryLine(relative_rect=formula_input_
 clock = pygame.time.Clock()
 is_running = True
 
+
 points = []
+nodes_points = []
 while is_running:
     time_delta = clock.tick(60)/1000.0
 
@@ -71,6 +74,14 @@ while is_running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             is_running = False
+        
+        left_mouse_button_lock = False
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            left_mouse_button_lock = True
+            nodes_points.append(pygame.mouse.get_pos())
+        if event.type == pygame.MOUSEBUTTONUP:
+            left_mouse_button_lock = False
+        
         if event.type == pygame_gui.UI_BUTTON_PRESSED:
             if event.ui_element == hello_button:
                 print("Hello!")
@@ -81,9 +92,8 @@ while is_running:
 
     manager.update(time_delta)
 
-    red_rect = pygame.Surface((50, 50))
-    pygame.draw.rect(red_rect, "red", red_rect.get_rect(), 10)
-
+    curveDrawer = CurveDrawer.CurveDrawer(nodes_points)
+    curveDrawer.print()
     window_surface.blit(background, (0, 0))
 
     if len(points) >= 2:
@@ -91,8 +101,18 @@ while is_running:
         pygame.draw.aalines(parametric_curve, 'white', closed=False, points=points);
         window_surface.blit(parametric_curve, (0, 0))
 
-    window_surface.blit(red_rect, (200, 500))
+    if len(nodes_points) > 2:
+        points_surface = pygame.Surface((800, 600))
+        for point in nodes_points:
+            pygame.draw.circle(points_surface, "green", point, 2.0)
+        # window_surface.blit(points_surface, (0, 0))
 
+        line = curveDrawer.draw(window_surface)
+        line_surface = pygame.Surface((800, 600))
+        pygame.draw.aalines(points_surface, 'yellow', closed=False, points=line);
+        window_surface.blit(points_surface, (0, 0))
+        # pygame.draw.aalines(points_surface, "green", false, )
+    
     manager.draw_ui(window_surface)
     
     
