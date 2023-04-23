@@ -1,23 +1,22 @@
 import LinearInterpolation 
-from numpy import linspace
-import pygame
 
 class CurveDrawer:
-    def __init__(self, nodes):
-        self.algorithm = LinearInterpolation.LinearInterpolation(nodes)
-        self.nodes = list(nodes)
-        # print(self.nodes)
+    def __init__(self, points, nodes):
+        self.points = points
+        self.nodes = nodes
 
-    def draw(self, surface):
-        ts = linspace(0, 800, 1000) 
-        line = []
-        for t in ts:
-          line.append((self.algorithm.interpolate(t, 'x'), self.algorithm.interpolate(t, 'y')))  
-        interpolated_curve = self.algorithm.interpolate(ts)
+    def draw(self, ts):
+        xs = [point[0] for point in self.points]
+        ys = [point[1] for point in self.points]
+    
+        interpolated_xs = LinearInterpolation.LinearInterpolation(xs, self.nodes).interpolate(ts)
+        interpolated_ys = LinearInterpolation.LinearInterpolation(ys, self.nodes).interpolate(ts)
+        
+    
 
-        # print(line)
-        return line
+        interpolated_curve = list(zip(interpolated_xs, interpolated_ys))
+        return interpolated_curve
         
     def print(self):
-        print(self.nodes)
+        print(self.points)
     

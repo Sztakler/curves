@@ -1,57 +1,53 @@
 class LinearInterpolation:
-    def __init__(self, nodes, ts):
-        self.nodes = nodes
-        self.ts = ts
+    def __init__(self, points, nodes):
+        self.points = points
+        self.nodes = nodes 
         self.weights= []
         self.calculate_weights()
         self.linx = lambda x : x
         self.liny = lambda x : x
         pass
 
+    def baricentric_formula(self, t):
+        def sum_of_weights(t):
+            result = 0
+            for i in range(len(self.weights)):
+                result += self.weights[i] / (t - self.nodes[i])
+            return result
+
+        def sum_of_weighted_points(t):
+            result = 0
+            for i in range(len(self.weights)):
+                result += self.weights[i] / (t - self.nodes[i]) * self.points[i]
+            return result
+
+        def is_node(t, epsilon):
+            i = 0
+            while i < len(self.nodes):
+                node = self.nodes[i]
+                if abs(node - t) <= epsilon:
+                    return (True, self.points[i])
+                i += 1
+            return (False, None)
+        t_is_node, value = is_node(t, 0.001)
+        if t_is_node:
+            return value 
+        else: 
+            return sum_of_weighted_points(t) / sum_of_weights(t) 
+
     def calculate_weights(self):
-        for i in range(0, len(self.ts)):
+        for i in range(0, len(self.nodes)):
             quotient = 1
-            for j in range(0, len(self.ts)):
+            for j in range(0, len(self.nodes)):
                 if i == j:
                     continue
-                quotient *= (self.ts[i] - self.ts[j]) 
+                quotient *= (self.nodes[i] - self.nodes[j]) 
             self.weights.append(1 / quotient)
-   
-
-    def baricentric_formula(self, t, axis):
-        points = []
-        if axis == "x":
-            print("x")
-            points = [node[0] for node in self.nodes]
-        else:
-            points = [node[1] for node in self.nodes]
-            print("y")
-
-        def sum_of_weighted_points():
-            result = 0
-            for i in range(len(self.nodes)):
-               result += (self.weights[i]) / (t - self.ts[i]) * points[i]
-            return result
-        
-        def sum_of_weights():
-            result = 0
-            for i in range(len(self.nodes)):
-                result += (self.weights[i]) / (t - self.ts[i])
-            return result
-
-
-        if t in self.ts:
-            index = self.nodes.index(t) 
-            return points[index]
-        else:
-            return sum_of_weighted_points() / sum_of_weights()
-    
+       
     def interpolate(self, ts):
-        curve = []
-        xs = [node[0] for node in self.nodes]
-        ys = [node[1] for node in self.nodes]
-     
+        values = []
         
+        for t in ts:
+            values.append(self.baricentric_formula(t))
 
-    def interpolate(self, t, axis):
-        return self.baricentric_formula(t, axis)
+        return values
