@@ -93,7 +93,7 @@ while is_running:
     manager.update(time_delta)
 
     curveDrawer = CurveDrawer.CurveDrawer(nodes_points)
-    curveDrawer.print()
+    # curveDrawer.print()
     window_surface.blit(background, (0, 0))
 
     if len(points) >= 2:
