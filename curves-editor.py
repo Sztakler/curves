@@ -61,7 +61,6 @@ class CurvesEditor:
         self.menu.set_layout()
 
         self.background_image_path = None
-        print()
         if (len(sys.argv) > 1):
             self.background_image_path = sys.argv[1]
 
@@ -70,6 +69,9 @@ class CurvesEditor:
             self.background_image = pygame.image.load(self.background_image_path)
          
         self.is_background_image_rendered = True
+        self.is_dragging = False
+        self.moving = False
+        self.direction = "left"
 
     def hex_to_rgb(self, value):
         value = value.lstrip('#')
@@ -166,6 +168,20 @@ class CurvesEditor:
     def toggle_background_image(self):
         self.is_background_image_rendered = not self.is_background_image_rendered
 
+    def get_point_under_cursor(self):
+        mouse_position = pygame.mouse.get_pos()
+        size = [10, 10]
+        collider = pygame.Rect(mouse_position[0] - size[0]/2, mouse_position[1] - size[1]/2, size[0], size[1])
+        pygame.draw.rect(self.window_surface, self.colorscheme["red"], collider) 
+        collider_surface = pygame.Surface(self.window_size)
+        pygame.draw.rect(collider_surface, 'red', collider);
+        self.window_surface.blit(collider_surface, mouse_position)
+        for point in self.user_points:
+            if collider.collidepoint(point[0], point[1]):
+                return self.user_points.index(point)
+        return None        
+
+
     def start(self): 
         def get_chebyshev_nodes(points):
             n = len(points)
@@ -181,15 +197,35 @@ class CurvesEditor:
         self.curveDrawers.append(curveDrawerInterpol)
         self.curveDrawers.append(curveDrawerSpline)
 
+        MODSHIFT = False
         while self.is_running:
             time_delta = self.clock.tick(60)/1000.0
-        
             for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_LSHIFT:
+                       MODSHIFT = True
+                    if event.key == pygame.K_LEFT:
+                        self.moving = True
+                        self.direction = "left"
+                    if event.key == pygame.K_RIGHT:
+                        self.moving = True
+                        self.direction = "right"
+                    if event.key == pygame.K_UP:
+                        self.moving = True
+                        self.direction = "up"
+                    if event.key == pygame.K_DOWN:
+                        self.moving = True
+                        self.direction = "down"
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_LSHIFT:
+                        self.is_dragging = False
+                        MODSHIFT = False
+                    if event.key in [pygame.K_RIGHT, pygame.K_LEFT, pygame.K_DOWN, pygame.K_UP]:
+                        self.moving = False
                 if event.type == pygame.QUIT:
                     self.is_running = False
                 
                 if event.type == pygame_gui.UI_BUTTON_PRESSED:
-
                     if event.ui_element == self.menu.elements[0]:
                         print("Hello!")
                     if event.ui_element == self.menu.elements[2]:
@@ -210,10 +246,23 @@ class CurvesEditor:
                 self.menu.manager.process_events(event)
  
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    self.update(pygame.mouse.get_pos())
+                        if event.button == 1:
+                            if MODSHIFT:
+                                self.is_dragging = True
+                                self.index = self.get_point_under_cursor()
+                            else:
+                                self.update(pygame.mouse.get_pos())
                 
             self.menu.manager.update(time_delta)
-        
+           
+            if self.moving:
+                self.move_points(self.direction)
+
+            if self.is_dragging:
+                if self.index != None:
+                    self.user_points[self.index] = list(pygame.mouse.get_pos())
+                if len(self.user_points) >= 2:
+                    self.update()
             self.render()
 
 curvesEditor = CurvesEditor()
