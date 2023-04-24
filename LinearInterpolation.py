@@ -4,9 +4,6 @@ class LinearInterpolation:
         self.nodes = nodes 
         self.weights= []
         self.calculate_weights()
-        self.linx = lambda x : x
-        self.liny = lambda x : x
-        pass
 
     def baricentric_formula(self, t):
         def sum_of_weights(t):
@@ -29,13 +26,15 @@ class LinearInterpolation:
                     return (True, self.points[i])
                 i += 1
             return (False, None)
+
         t_is_node, value = is_node(t, 0.001)
         if t_is_node:
             return value 
-        else: 
+        else:
             return sum_of_weighted_points(t) / sum_of_weights(t) 
 
     def calculate_weights(self):
+        self.weights = []
         for i in range(0, len(self.nodes)):
             quotient = 1
             for j in range(0, len(self.nodes)):
@@ -45,9 +44,22 @@ class LinearInterpolation:
             self.weights.append(1 / quotient)
        
     def interpolate(self, ts):
-        values = []
-        
-        for t in ts:
-            values.append(self.baricentric_formula(t))
+        def calculate_values(points):
+            values = []
+            self.points = points
+            self.calculate_weights()
 
-        return values
+            for t in ts:
+                values.append(self.baricentric_formula(t))
+
+            return values
+        
+        xs = [point[0] for point in self.points]
+        ys = [point[1] for point in self.points]
+   
+
+        interpolated_xs = calculate_values(xs)
+        interpolated_ys = calculate_values(ys)
+
+        interpolated_curve = list(zip(interpolated_xs, interpolated_ys))
+        return interpolated_curve

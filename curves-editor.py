@@ -4,22 +4,24 @@ import pygame_gui
 from math import *
 import numpy
 import CurveDrawer
-
-colorscheme = {
-        "bg": "#282828",
-        "red": "#cc241d",
-        "green": "#98971a",
-        "yellow": "#d79921",
-        "blue": "458588",
-        "purple": "b16286",
-        }
-
-screen_res = (1368, 768)
+import NaturalCubicSplines
 
 def hex_to_rgb(value):
     value = value.lstrip('#')
     lv = len(value)
     return tuple(int(value[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
+
+colorscheme = {
+        "bg": hex_to_rgb("#282828"),
+        "red": hex_to_rgb("#cc241d"),
+        "green": hex_to_rgb("#98971a"),
+        "yellow": hex_to_rgb("#d79921"),
+        "blue": hex_to_rgb("#458588"),
+        "purple": hex_to_rgb("#b16286"),
+        }
+
+screen_res = (1368, 768)
+
 
 def process_input(input):
     # x_fun = numpy.identity
@@ -81,15 +83,24 @@ formula_input = pygame_gui.elements.UITextEntryLine(relative_rect=formula_input_
 clock = pygame.time.Clock()
 is_running = True
 
-def chebyshev_nodes(n, interval):
-    nodes = []
-    for k in range(0, n + 1):
-        nodes.append(cos((2 * k + 1) * pi / (2 * n + 2)))
-        # nodes.append( (0.5 * (interval[0] + interval[1]) + (interval[1] - interval[0]) * cos((2*k + 1) * pi / (2 * (n+2))) ) )
-    return nodes
+def get_chebyshev_nodes(points):
+    n = len(points)
+    result = []
+    for k in range(n + 1)[1:]:
+        result.append( 
+            cos( 
+                ((2*k - 1) / (2*n)) * pi) )
+    return result
+
+background_image = pygame.image.load('./apple-small.png')
 
 points = []
-nodes_points = []
+user_points = []
+
+
+curveDrawerInterpol = CurveDrawer.CurveDrawer(user_points=user_points, interpolation_method="lagrange", nodes_method=get_chebyshev_nodes, ts_len=1000)
+curveDrawerSpline = CurveDrawer.CurveDrawer(user_points=user_points, interpolation_method="spline", ts_len=1000)
+
 while is_running:
     time_delta = clock.tick(60)/1000.0
 
@@ -101,7 +112,9 @@ while is_running:
         left_mouse_button_lock = False
         if event.type == pygame.MOUSEBUTTONDOWN:
             left_mouse_button_lock = True
-            nodes_points.append(pygame.mouse.get_pos())
+            user_points.append(pygame.mouse.get_pos())
+            curveDrawerInterpol.update(user_points)
+            curveDrawerSpline.update(user_points)
         if event.type == pygame.MOUSEBUTTONUP:
             left_mouse_button_lock = False
         
@@ -115,24 +128,25 @@ while is_running:
 
     manager.update(time_delta)
 
-    # curveDrawer = CurveDrawer.CurveDrawer(nodes_points, numpy.linspace(0, 1, len(nodes_points)))
-    curveDrawer = CurveDrawer.CurveDrawer(nodes_points,chebyshev_nodes(len(nodes_points) - 1, (0,0,11))) 
-    # curveDrawer.print()
-    window_surface.blit(background, (0, 0))
+    # curveDrawer = CurveDrawer.CurveDrawer(user_points, numpy.linspace(0, 1, len(user_points)))
 
+    # cubicSpline = NaturalCubicSplines.NaturalCubicSplines(user_points)
+    # curveDrawer.print()
     if len(points) >= 2:
         parametric_curve = pygame.Surface(screen_res)
         pygame.draw.aalines(parametric_curve, 'white', closed=False, points=points);
         window_surface.blit(parametric_curve, (0, 0))
 
     points_surface = pygame.Surface(screen_res)
-    points_surface.fill(hex_to_rgb(colorscheme["bg"]))
-    for point in nodes_points:
-        pygame.draw.circle(points_surface, hex_to_rgb(colorscheme["green"]), point, 2.0)
-    if len(nodes_points) >= 2:
-        line = curveDrawer.draw(numpy.linspace(-1, 1, 5000))
-        line_surface = pygame.Surface(screen_res)
-        pygame.draw.aalines(points_surface, hex_to_rgb(colorscheme["yellow"]), closed=False, points=line);
+    points_surface.fill(colorscheme["bg"])
+    points_surface.blit(background_image, (0,0))
+
+    for point in user_points:
+        pygame.draw.circle(points_surface, colorscheme["green"], point, 3.0)
+    if len(user_points) >= 2:
+        # spline = cubicSpline.interpolate()
+        curveDrawerInterpol.draw(surface=points_surface, color=colorscheme["blue"])
+        curveDrawerSpline.draw(surface=points_surface, color=colorscheme["red"])
     window_surface.blit(points_surface, (0, 0))
     
     manager.draw_ui(window_surface)

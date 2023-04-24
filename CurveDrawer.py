@@ -1,22 +1,64 @@
+import pygame
 import LinearInterpolation 
+import NaturalCubicSplines
+from numpy import linspace
 
 class CurveDrawer:
-    def __init__(self, points, nodes):
-        self.points = points
-        self.nodes = nodes
-
-    def draw(self, ts):
-        xs = [point[0] for point in self.points]
-        ys = [point[1] for point in self.points]
-    
-        interpolated_xs = LinearInterpolation.LinearInterpolation(xs, self.nodes).interpolate(ts)
-        interpolated_ys = LinearInterpolation.LinearInterpolation(ys, self.nodes).interpolate(ts)
+    def __init__(self, user_points, interpolation_method, nodes_method=None, ts_len=1000):
+        self.points = user_points
+        self.nodes = []
+        self.nodes_method = nodes_method
+        self.interpolation_method = interpolation_method
+        self.algorithm = self.select_algorithm(interpolation_method)
+        self.interpolated_curve = []
+        self.ts = []
+        self.ts_len = ts_len
         
+        if len(self.points) > 2:
+            if self.nodes_method != None:
+                self.nodes = self.nodes_method(self.points)
+                self.ts = list(linspace(self.nodes[0], self.nodes[-1], self.ts_len))
+            else:
+                self.ts = list(linspace(0, 1, self.ts_len))
+            self.generate_interpolated_curve()
+
+
+    def select_algorithm(self, method):
+        if method == "lagrange":
+            return LinearInterpolation.LinearInterpolation(self.points, self.nodes)
+        elif method == "spline":
+            return NaturalCubicSplines.NaturalCubicSplines(self.points)
+        else:
+            return NaturalCubicSplines.NaturalCubicSplines(self.points)
     
 
-        interpolated_curve = list(zip(interpolated_xs, interpolated_ys))
-        return interpolated_curve
+    def generate_interpolated_curve(self):
+        if len(self.points) < 2:
+            return
+
+        self.interpolated_curve = self.algorithm.interpolate(self.ts)
+
+
+    def update(self, new_user_points):
+        self.points = new_user_points
+
+        if self.nodes_method != None:
+            self.nodes = self.nodes_method(self.points)
+            self.ts = list(linspace(self.nodes[0], self.nodes[-1], self.ts_len))
+        else:
+            self.ts = list(linspace(0, 1, self.ts_len))
         
+        self.algorithm = self.select_algorithm(self.interpolation_method)
+        self.generate_interpolated_curve()
+
+
+    def draw(self, surface, color):
+        if len(self.points) < 2:
+            return
+
+        pygame.draw.aalines(surface, color, closed=False, points=self.interpolated_curve);
+        
+
     def print(self):
         print(self.points)
     
