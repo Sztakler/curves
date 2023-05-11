@@ -170,7 +170,7 @@ class CurvesEditor:
     def toggle_background_image(self):
         self.is_background_image_rendered = not self.is_background_image_rendered
 
-    def get_point_under_cursor(self):
+    def get_point_under_cursor_index(self):
         mouse_position = pygame.mouse.get_pos()
         size = [10, 10]
         collider = pygame.Rect(mouse_position[0] - size[0]/2, mouse_position[1] - size[1]/2, size[0], size[1])
@@ -183,6 +183,23 @@ class CurvesEditor:
                 return self.user_points.index(point)
         return None        
 
+
+    def get_point_under_cursor(self):
+        mouse_position = pygame.mouse.get_pos()
+        size = [10, 10]
+        collider = pygame.Rect(mouse_position[0] - size[0]/2, mouse_position[1] - size[1]/2, size[0], size[1])
+        pygame.draw.rect(self.window_surface, self.colorscheme["red"], collider) 
+        collider_surface = pygame.Surface(self.window_size)
+        pygame.draw.rect(collider_surface, 'red', collider);
+        self.window_surface.blit(collider_surface, mouse_position)
+        for point in self.user_points:
+            if collider.collidepoint(point[0], point[1]):
+                return point
+        return None        
+
+    def remove_point(self, point):
+        if point != None:
+            self.user_points.remove(point)
 
     def start(self): 
         def get_chebyshev_nodes(points):
@@ -253,9 +270,17 @@ class CurvesEditor:
                         if event.button == 1:
                             if MODSHIFT:
                                 self.is_dragging = True
-                                self.index = self.get_point_under_cursor()
+                                self.index = self.get_point_under_cursor_index()
                             else:
                                 self.update(pygame.mouse.get_pos())
+                        if event.button == 3:
+                            if MODSHIFT:
+                                # add new point
+                                pass
+                            else:
+                                print(self.get_point_under_cursor())
+                                self.remove_point(self.get_point_under_cursor())
+                                self.update()
                 
             self.menu.manager.update(time_delta)
            
