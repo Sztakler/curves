@@ -1,6 +1,7 @@
 import pygame
 import LinearInterpolation 
 import NaturalCubicSplines
+import BezierCurves
 from numpy import linspace
 
 class CurveDrawer:
@@ -28,6 +29,8 @@ class CurveDrawer:
             return LinearInterpolation.LinearInterpolation(self.points, self.nodes)
         elif method == "spline":
             return NaturalCubicSplines.NaturalCubicSplines(self.points)
+        elif method == "bezier":
+            return BezierCurves.BezierCurve(self.points)
         else:
             return NaturalCubicSplines.NaturalCubicSplines(self.points)
     

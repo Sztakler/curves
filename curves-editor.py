@@ -140,8 +140,10 @@ class CurvesEditor:
         
         for point in self.user_points:
             pygame.draw.circle(self.window_surface, self.colorscheme["green"], point, 3.0)
-            self.curveDrawers[0].draw(surface=self.window_surface, color=self.colorscheme["blue"])
-            self.curveDrawers[1].draw(surface=self.window_surface, color=self.colorscheme["red"])
+            # self.curveDrawers[0].draw(surface=self.window_surface, color=self.colorscheme["blue"])
+            # self.curveDrawers[1].draw(surface=self.window_surface, color=self.colorscheme["red"])
+            self.curveDrawers[0].draw(surface=self.window_surface, color=self.colorscheme["green"])
+
         
         self.menu.manager.draw_ui(self.window_surface)
         
@@ -194,8 +196,10 @@ class CurvesEditor:
         
         curveDrawerInterpol = CurveDrawer.CurveDrawer(user_points=self.user_points, interpolation_method="lagrange", nodes_method=get_chebyshev_nodes, ts_len=1000)
         curveDrawerSpline = CurveDrawer.CurveDrawer(user_points=self.user_points, interpolation_method="spline", ts_len=1000)
-        self.curveDrawers.append(curveDrawerInterpol)
-        self.curveDrawers.append(curveDrawerSpline)
+        curveDrawerBezier = CurveDrawer.CurveDrawer(user_points=self.user_points, interpolation_method="bezier", ts_len=1000)
+        # self.curveDrawers.append(curveDrawerInterpol)
+        # self.curveDrawers.append(curveDrawerSpline)
+        self.curveDrawers.append(curveDrawerBezier)
 
         MODSHIFT = False
         while self.is_running:

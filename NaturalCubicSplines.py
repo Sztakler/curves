@@ -1,5 +1,3 @@
-from matplotlib import pyplot
-
 class NaturalCubicSplines:
     def __init__(self, points):
         self.points = points
@@ -76,12 +74,6 @@ class NaturalCubicSplines:
         s_x = self.nifs3(tk, xk) #generujemy nifs3 za pomocą podanych w tresci zadania punktów
         s_y = self.nifs3(tk, yk) #dodatkowa opcja, dla funkcji parametrycznych
 
-        # m = 10000
-        # u_k = [k/m for k in range(0, m + 1)] #generujemy 10001 punktów, w których obliczymy wartość nifs3, której wzór
-        #                                      #wyznaczylismy w poprzednich linijkach
-
-        # x = self.map_list(s_x, u_k) #mapujemy działanie funkcji na argumenty
-        # y = self.map_list(s_y, u_k)
         x = self.map_list(s_x, ts)
         y = self.map_list(s_y, ts)
 
