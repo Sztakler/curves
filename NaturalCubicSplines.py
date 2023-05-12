@@ -65,8 +65,8 @@ class NaturalCubicSplines:
         yk = []
 
         for point in self.points: #z punktów z zadania wyciagamy iksy i igreki
-              xk.append(point[0])
-              yk.append(point[1])
+              xk.append(point.x)
+              yk.append(point.y)
 
         l = len(xk)
         tk = [k / (l-1) for k in range(0, l)] 

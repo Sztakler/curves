@@ -44,7 +44,6 @@ class CurveDrawer:
 
     def update(self, new_user_points):
         self.points = new_user_points
-
         if self.nodes_method != None:
             self.nodes = self.nodes_method(self.points)
             self.ts = list(linspace(self.nodes[0], self.nodes[-1], self.ts_len))

@@ -15,8 +15,8 @@ class BezierCurve:
         y = 0
         n = len(self.points)
         for i in range(n):
-            x += self.bernstein_polynomial(n-1, i, t) * self.points[i][0]         
-            y += self.bernstein_polynomial(n-1, i, t) * self.points[i][1]         
+            x += self.bernstein_polynomial(n-1, i, t) * self.points[i].x         
+            y += self.bernstein_polynomial(n-1, i, t) * self.points[i].y         
 
         return [x, y]
        

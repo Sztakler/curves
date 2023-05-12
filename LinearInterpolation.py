@@ -53,9 +53,9 @@ class LinearInterpolation:
                 values.append(self.baricentric_formula(t))
 
             return values
-        
-        xs = [point[0] for point in self.points]
-        ys = [point[1] for point in self.points]
+
+        xs = [point.x for point in self.points]
+        ys = [point.y for point in self.points]
    
 
         interpolated_xs = calculate_values(xs)

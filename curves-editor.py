@@ -1,4 +1,5 @@
 from ctypes.wintypes import RGB
+from functools import reduce
 from math import *
 import sys
 
@@ -7,6 +8,15 @@ import pygame
 import pygame_gui
 
 import CurveDrawer
+
+
+class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def getCoordinates(self):
+        return [self.x, self.y]
 
 class Menu:
     def __init__(self, manager, elements, margin, padding, height):
@@ -69,9 +79,13 @@ class CurvesEditor:
             self.background_image = pygame.image.load(self.background_image_path)
          
         self.is_background_image_rendered = True
+        self.isConvexHullRendered = False
         self.is_dragging = False
         self.moving = False
         self.direction = "left"
+        self.rotation = False
+        self.rotation_direction = "clockwise"
+        self.pivot = None
 
     def hex_to_rgb(self, value):
         value = value.lstrip('#')
@@ -112,19 +126,18 @@ class CurvesEditor:
         points = []
         size = 100.0
         for t in ts:
-            points.append((x_fun(t) * size + 200, y_fun(t) * size + 200))
-        
-    
+            point = Point(x_fun(t) * size + 200, y_fun(t) * size + 200)
+            points.append(point)
+            
         return points
    
     def update(self, mouse_position=None):
         if mouse_position != None:
-            mouse_position = list(mouse_position)
-            if mouse_position[1] < self.menu.height:
+            point = Point(mouse_position[0], mouse_position[1])
+            if point.x < self.menu.height:
                 return
             else:
-                self.user_points.append(mouse_position)
-
+                self.user_points.append(point)
         for curveDrawer in self.curveDrawers:
             curveDrawer.update(self.user_points)
 
@@ -138,11 +151,16 @@ class CurvesEditor:
         if self.background_image != None and self.is_background_image_rendered == True:
             self.window_surface.blit(self.background_image, (200,200))
         
+        # convex_hull = self.get_convex_hull()
+        convex_hull = self.GrahamScan()
+        if len(convex_hull) > 2 and self.isConvexHullRendered:
+            pygame.draw.aalines(self.window_surface, self.colorscheme["purple"], closed=True, points=convex_hull);
+        
         for point in self.user_points:
-            pygame.draw.circle(self.window_surface, self.colorscheme["green"], point, 3.0)
-            # self.curveDrawers[0].draw(surface=self.window_surface, color=self.colorscheme["blue"])
-            # self.curveDrawers[1].draw(surface=self.window_surface, color=self.colorscheme["red"])
-            self.curveDrawers[0].draw(surface=self.window_surface, color=self.colorscheme["green"])
+            pygame.draw.circle(self.window_surface, self.colorscheme["green"], point.getCoordinates(), 3.0)
+            self.curveDrawers[0].draw(surface=self.window_surface, color=self.colorscheme["blue"])
+            self.curveDrawers[1].draw(surface=self.window_surface, color=self.colorscheme["red"])
+            self.curveDrawers[2].draw(surface=self.window_surface, color=self.colorscheme["green"])
 
         
         self.menu.manager.draw_ui(self.window_surface)
@@ -155,16 +173,16 @@ class CurvesEditor:
 
         if direction == "left":
             for point in self.user_points:
-                point[0] -= 10
+                point.x -= 10
         if direction == "right":
             for point in self.user_points:
-                point[0] += 10
+                point.x += 10
         if direction == "up":
             for point in self.user_points:
-                point[1] -= 10
+                point.y -= 10
         if direction == "down":
             for point in self.user_points:
-                point[1] += 10
+                point.y += 10
         self.update()
     
     def toggle_background_image(self):
@@ -179,7 +197,7 @@ class CurvesEditor:
         pygame.draw.rect(collider_surface, 'red', collider);
         self.window_surface.blit(collider_surface, mouse_position)
         for point in self.user_points:
-            if collider.collidepoint(point[0], point[1]):
+            if collider.collidepoint(point.x, point.y):
                 return self.user_points.index(point)
         return None        
 
@@ -193,14 +211,138 @@ class CurvesEditor:
         pygame.draw.rect(collider_surface, 'red', collider);
         self.window_surface.blit(collider_surface, mouse_position)
         for point in self.user_points:
-            if collider.collidepoint(point[0], point[1]):
+            if collider.collidepoint(point.x, point.y):
                 return point
         return None        
 
     def remove_point(self, point):
         if point != None:
+            self.rotation_direction = "clockwise"
             self.user_points.remove(point)
+            self.rotation_direction = "clockwise"
 
+    def rotate_point(self, pivot, point, direction):
+        point.x -= pivot[0]
+        point.y -= pivot[1]
+
+        angle = pi / 100
+
+        new_point = Point(point.x, point.y)
+
+        if direction == "clockwise":
+            new_point.x = point.x * cos(angle) + point.y * sin(angle)
+            new_point.y = -point.x * sin(angle) + point.y * cos(angle)
+        else:        
+            new_point.x = point.x * cos(angle) - point.y * sin(angle)
+            new_point.y = point.x * sin(angle) + point.y * cos(angle)
+        
+
+        point.x = new_point.x + pivot[0] 
+        point.y = new_point.y + pivot[1] 
+
+    def toggleHull(self):
+        self.isConvexHullRendered = not self.isConvexHullRendered
+    
+    def get_convex_hull(self):
+        def findSide(p1, p2, p):
+            val = (p.y - p1.y) * (p2.x - p1.x) - (p2.y - p1.y) * (p.x - p1.x)
+     
+            if val > 0:
+                return 1
+            if val < 0:
+                return -1
+            return 0
+
+        def lineDist(p1, p2, p):
+            return abs((p.y - p1.y) * (p2.x - p1.x) -
+                (p2.y - p1.y) * (p.x - p1.x))
+
+        hull = []
+
+        def quickHull(a, n, p1, p2, side):
+            ind = -1
+            max_dist = 0
+         
+            # finding the point with maximum distance
+            # from L and also on the specified side of L.
+            for i in range(n):
+                temp = lineDist(p1, p2, a[i])
+                 
+                if (findSide(p1, p2, a[i]) == side) and (temp > max_dist):
+                    ind = i
+                    max_dist = temp
+         
+            # If no point is found, add the end points
+            # of L to the convex hull.
+            if ind == -1:
+                hull.append(p1)
+                hull.append(p2)
+                return
+         
+            # Recur for the two parts divided by a[ind]
+            quickHull(a, n, a[ind], p1, -findSide(a[ind], p1, p2))
+            quickHull(a, n, a[ind], p2, -findSide(a[ind], p2, p1))
+
+        
+
+        n = len(self.user_points)
+        a = self.user_points[:]
+        if (n < 3):
+            print("Convex hull not possible")
+            return
+     
+        # Finding the point with minimum and
+        # maximum x-coordinate
+        min_x = 0
+        max_x = 0
+        for i in range(1, n):
+            if a[i].x < a[min_x].x:
+                min_x = i
+            if a[i].x > a[max_x].x:
+                max_x = i
+     
+        # Recursively find convex hull points on
+        # one side of line joining a[min_x] and
+        # a[max_x]
+        quickHull(a, n, a[min_x], a[max_x], 1)
+     
+        # Recursively find convex hull points on
+        # other side of line joining a[min_x] and
+        # a[max_x]
+        quickHull(a, n, a[min_x], a[max_x], -1)
+
+        hullPoints = [[point.x, point.y] for point in list(hull)]
+     
+        print(hullPoints)
+        return hullPoints
+            
+
+    def GrahamScan(self):
+        '''
+        Returns points on convex hull in CCW order according to Graham's scan algorithm. 
+        By Tom Switzer <thomas.switzer@gmail.com>.
+        '''
+        points = [[point.x, point.y] for point in self.user_points]
+        TURN_LEFT, TURN_RIGHT, TURN_NONE = (1, -1, 0)
+
+        def cmp(a, b):
+            return (a > b) - (a < b)
+
+        def turn(p, q, r):
+            return cmp((q[0] - p[0])*(r[1] - p[1]) - (r[0] - p[0])*(q[1] - p[1]), 0)
+
+        def _keep_left(hull, r):
+            while len(hull) > 1 and turn(hull[-2], hull[-1], r) != TURN_LEFT:
+                hull.pop()
+            if not len(hull) or hull[-1] != r:
+                hull.append(r)
+            return hull
+
+        points = sorted(points)
+        l = reduce(_keep_left, points, [])
+        u = reduce(_keep_left, reversed(points), [])
+        return l.extend(u[i] for i in range(1, len(u) - 1)) or l        
+            
     def start(self): 
         def get_chebyshev_nodes(points):
             n = len(points)
@@ -214,8 +356,8 @@ class CurvesEditor:
         curveDrawerInterpol = CurveDrawer.CurveDrawer(user_points=self.user_points, interpolation_method="lagrange", nodes_method=get_chebyshev_nodes, ts_len=1000)
         curveDrawerSpline = CurveDrawer.CurveDrawer(user_points=self.user_points, interpolation_method="spline", ts_len=1000)
         curveDrawerBezier = CurveDrawer.CurveDrawer(user_points=self.user_points, interpolation_method="bezier", ts_len=1000)
-        # self.curveDrawers.append(curveDrawerInterpol)
-        # self.curveDrawers.append(curveDrawerSpline)
+        self.curveDrawers.append(curveDrawerInterpol)
+        self.curveDrawers.append(curveDrawerSpline)
         self.curveDrawers.append(curveDrawerBezier)
 
         MODSHIFT = False
@@ -237,12 +379,22 @@ class CurvesEditor:
                     if event.key == pygame.K_DOWN:
                         self.moving = True
                         self.direction = "down"
+                    if event.key == pygame.K_h:
+                        self.toggleHull()
+                    if event.key == pygame.K_r:
+                        self.rotation = True
+                        self.rotation_direction = "clockwise"
+                        if MODSHIFT:
+                            self.rotation_direction = "counter-clockwise"
+                        self.pivot = list(pygame.mouse.get_pos())
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_LSHIFT:
                         self.is_dragging = False
                         MODSHIFT = False
                     if event.key in [pygame.K_RIGHT, pygame.K_LEFT, pygame.K_DOWN, pygame.K_UP]:
                         self.moving = False
+                    if event.key == pygame.K_r:
+                        self.rotation = False
                 if event.type == pygame.QUIT:
                     self.is_running = False
                 
@@ -278,7 +430,6 @@ class CurvesEditor:
                                 # add new point
                                 pass
                             else:
-                                print(self.get_point_under_cursor())
                                 self.remove_point(self.get_point_under_cursor())
                                 self.update()
                 
@@ -289,9 +440,18 @@ class CurvesEditor:
 
             if self.is_dragging:
                 if self.index != None:
-                    self.user_points[self.index] = list(pygame.mouse.get_pos())
+                    mouse_position = pygame.mouse.get_pos()
+                    point = Point(mouse_position[0], mouse_position[1])
+                    self.user_points[self.index] = point
+                    
                 if len(self.user_points) >= 2:
                     self.update()
+
+            if self.rotation:
+                for point in self.user_points:
+                    self.rotate_point(self.pivot, point, self.rotation_direction)
+                self.update()
+                    
             self.render()
 
 curvesEditor = CurvesEditor()
