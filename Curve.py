@@ -1,13 +1,6 @@
 from ctypes.wintypes import RGB
 from functools import reduce
 from math import *
-import sys
-
-import numpy
-import pygame
-import pygame_gui
-
-import CurveDrawer
 from CurveDrawer import CurveDrawer
 from Point import Point
 from ConvexHull import ConvexHull
@@ -18,6 +11,8 @@ class Curve:
         self.points = points
         self.curveDrawer = CurveDrawer(user_points=self.points, interpolation_method=interpolationMethod, nodes_method=nodesMethod, ts_len=tsLen)
         self.color = color
+        self.baseColor = color
+        self.isSelected = False
         self.convexHull = ConvexHull(self.points, (255, 0, 255), convexHullMethod)
 
     def draw(self, surface, draw_points=False):
@@ -33,6 +28,14 @@ class Curve:
         self.points = points
         self.curveDrawer.update(points)
         self.convexHull.update(points)
+
+    def select(self, colorOverride):
+        self.color = colorOverride
+        self.isSelected = True
+
+    def deselect(self):
+        self.color = self.baseColor
+        self.isSelected = False
 
     def move_points(self, direction):
         if len(self.points) < 1:
@@ -51,3 +54,17 @@ class Curve:
             for point in self.points:
                 point.y += 10
         self.update()
+
+    def check_if_lies_on(self, point, epsilon=10):
+        def distance_squared(p1, p2):
+            return (p2[0] - p1[0])**2 + (p2[1] - p1[1])**2
+
+        # https://stackoverflow.com/questions/11907947/how-to-check-if-a-point-lies-on-a-line-between-2-other-points
+        curve = self.curveDrawer.interpolated_curve
+        for i in range(len(curve)-1):
+            node0 = curve[i]
+            node1 = curve[i+1]
+
+            if (distance_squared(node0, point) + distance_squared(point, node1) - distance_squared(node0, node1) < epsilon):
+                return True
+        return False

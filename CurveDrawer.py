@@ -46,7 +46,10 @@ class CurveDrawer:
         self.points = new_user_points
         if self.nodes_method != None:
             self.nodes = self.nodes_method(self.points)
-            self.ts = list(linspace(self.nodes[0], self.nodes[-1], self.ts_len))
+            if len(self.nodes) < 1:
+                self.ts = list(linspace(0, 0, self.ts_len))
+            else:
+                self.ts = list(linspace(self.nodes[0], self.nodes[-1], self.ts_len))
         else:
             self.ts = list(linspace(0, 1, self.ts_len))
         

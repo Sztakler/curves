@@ -37,6 +37,7 @@ class CurvesEditor:
         self.points = []
         self.colorscheme = {
             "bg": self.hex_to_rgb("#282828"),
+            "selected": self.hex_to_rgb("#d65d0e"),
             "red": self.hex_to_rgb("#cc241d"),
             "green": self.hex_to_rgb("#98971a"),
             "yellow": self.hex_to_rgb("#d79921"),
@@ -82,6 +83,7 @@ class CurvesEditor:
         self.rotation_direction = "clockwise"
         self.pivot = None
         self.curves = []
+        self.selected_curve = None
 
     def hex_to_rgb(self, value):
         value = value.lstrip('#')
@@ -134,9 +136,7 @@ class CurvesEditor:
                 return
             else:
                 self.user_points.append(point)
-        for curveDrawer in self.curveDrawers:
-            curveDrawer.update(self.user_points)
-
+        
         for curve in self.curves:
             curve.update(self.user_points)
 
@@ -211,11 +211,21 @@ class CurvesEditor:
                 return point
         return None        
 
+    def select_curve_under_cursor(self):
+        mouse_position= pygame.mouse.get_pos()
+        epsilon = 10
+        for curve in self.curves:
+            if curve.check_if_lies_on(mouse_position, epsilon):
+                if self.selected_curve != None:
+                    self.selected_curve.deselect()
+                self.selected_curve = curve
+                self.selected_curve.select(self.colorscheme["selected"])
+
+
     def remove_point(self, point):
         if point != None:
             self.rotation_direction = "clockwise"
             self.user_points.remove(point)
-            self.rotation_direction = "clockwise"
 
     def rotate_point(self, pivot, point, direction):
         point.x -= pivot[0]
@@ -240,32 +250,10 @@ class CurvesEditor:
         for curve in self.curves:
             curve.convexHull.toggleRendering()
 
-    def GrahamScan(self):
-        '''
-        Returns points on convex hull in CCW order according to Graham's scan algorithm. 
-        By Tom Switzer <thomas.switzer@gmail.com>.
-        '''
-        points = [[point.x, point.y] for point in self.user_points]
-        TURN_LEFT, TURN_RIGHT, TURN_NONE = (1, -1, 0)
+    def clear(self):
+        self.user_point = []
+        self.update()
 
-        def cmp(a, b):
-            return (a > b) - (a < b)
-
-        def turn(p, q, r):
-            return cmp((q[0] - p[0])*(r[1] - p[1]) - (r[0] - p[0])*(q[1] - p[1]), 0)
-
-        def _keep_left(hull, r):
-            while len(hull) > 1 and turn(hull[-2], hull[-1], r) != TURN_LEFT:
-                hull.pop()
-            if not len(hull) or hull[-1] != r:
-                hull.append(r)
-            return hull
-
-        points = sorted(points)
-        l = reduce(_keep_left, points, [])
-        u = reduce(_keep_left, reversed(points), [])
-        return l.extend(u[i] for i in range(1, len(u) - 1)) or l        
-            
     def start(self): 
         def get_chebyshev_nodes(points):
             n = len(points)
@@ -288,6 +276,8 @@ class CurvesEditor:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_LSHIFT:
                        MODSHIFT = True
+                    if event.key == pygame.KMOD_CTRL:
+                        MODCTRL = True
                     if event.key == pygame.K_LEFT:
                         self.moving = True
                         self.direction = "left"
@@ -324,6 +314,8 @@ class CurvesEditor:
                         print("Hello!")
                     if event.ui_element == self.menu.elements[2]:
                         self.user_points = []
+                        self.update()
+                        #  self.clear()
                     if event.ui_element == self.menu.elements[3]:
                         self.move_points("left")
                     if event.ui_element == self.menu.elements[4]:
@@ -340,10 +332,12 @@ class CurvesEditor:
                 self.menu.manager.process_events(event)
  
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                        if event.button == 1:
-                            if MODSHIFT:
+                        if event.button == 2:
                                 self.is_dragging = True
                                 self.index = self.get_point_under_cursor_index()
+                        if event.button == 1:
+                            if MODSHIFT:
+                                self.select_curve_under_cursor()
                             else:
                                 self.update(pygame.mouse.get_pos())
                         if event.button == 3:
@@ -353,6 +347,9 @@ class CurvesEditor:
                             else:
                                 self.remove_point(self.get_point_under_cursor())
                                 self.update()
+                if event.type == pygame.MOUSEBUTTONUP:
+                    if event.button == 2:
+                        self.is_dragging = False
                 
             self.menu.manager.update(time_delta)
            
