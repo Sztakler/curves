@@ -2,6 +2,7 @@ from ctypes.wintypes import RGB
 from functools import reduce
 from math import *
 import sys
+from random import randint
 
 import numpy
 import pygame
@@ -60,6 +61,7 @@ class CurvesEditor:
                 pygame_gui.elements.UIButton(relative_rect=pygame.Rect(730,5,100,30), text="MoveUp", manager=None, anchors={'top': 'top', 'left': 'left'}),
                 pygame_gui.elements.UIButton(relative_rect=pygame.Rect(835,5,100,30), text="MoveDown", manager=None, anchors={'top': 'top', 'left': 'left'}),
                 pygame_gui.elements.UIButton(relative_rect=pygame.Rect(940,5,150,30), text="Toggle Image", manager=None, anchors={'top': 'top', 'left': 'left'}),
+                pygame_gui.elements.UIDropDownMenu(relative_rect=pygame.Rect(1100, 5, 200, 30), options_list=["Lagrange", "Spline", "Bezier"], starting_option="Bezier",manager=None, anchors={'top': 'top', 'left': 'left'})
             ],
             margin=5,
             padding=5,
@@ -84,6 +86,7 @@ class CurvesEditor:
         self.pivot = None
         self.curves = []
         self.selected_curve = None
+        self.block_mouse_click = False
 
     def hex_to_rgb(self, value):
         value = value.lstrip('#')
@@ -137,8 +140,10 @@ class CurvesEditor:
             else:
                 self.user_points.append(point)
         
-        for curve in self.curves:
-            curve.update(self.user_points)
+        if self.selected_curve != None:
+            self.selected_curve.update(self.user_points)
+        # for curve in self.curves:
+        #     curve.update(self.user_points)
 
     def render(self):
         if len(self.points) >= 2:
@@ -149,11 +154,6 @@ class CurvesEditor:
         self.window_surface.fill(self.colorscheme["bg"])
         if self.background_image != None and self.is_background_image_rendered == True:
             self.window_surface.blit(self.background_image, (200,200))
-        
-        # convex_hull = self.get_convex_hull()
-        convex_hull = self.GrahamScan()
-        if len(convex_hull) > 2 and self.isConvexHullRendered:
-            pygame.draw.aalines(self.window_surface, self.colorscheme["red"], closed=True, points=convex_hull);
         
         for curve in self.curves:
             curve.draw(surface=self.window_surface, draw_points=True)
@@ -216,10 +216,7 @@ class CurvesEditor:
         epsilon = 10
         for curve in self.curves:
             if curve.check_if_lies_on(mouse_position, epsilon):
-                if self.selected_curve != None:
-                    self.selected_curve.deselect()
-                self.selected_curve = curve
-                self.selected_curve.select(self.colorscheme["selected"])
+                self.selectCurve(curve)
 
 
     def remove_point(self, point):
@@ -254,30 +251,54 @@ class CurvesEditor:
         self.user_point = []
         self.update()
 
+    def get_chebyshev_nodes(self, points):
+        n = len(points)
+        result = []
+        for k in range(n + 1)[1:]:
+            result.append( 
+                cos( ((2*k - 1) / (2*n)) * pi) )
+        return result
+
+    def selectCurve(self, curve): 
+        if curve == None:
+            return
+
+        if self.selected_curve != None:
+            self.selected_curve.deselect()
+        self.selected_curve = curve
+        print(curve)
+        self.user_points = self.selected_curve.points
+        self.selected_curve.update(self.user_points)
+        self.selected_curve.select(self.colorscheme["selected"])
+
+    def addCurve(self):
+        self.user_points = []
+        points = []
+        color = (randint(0, 255), randint(0, 255), randint(0, 255), 255) 
+        method = self.menu.elements[8].selected_option.lower()
+
+        curve = Curve(points, color, method)
+        if method == "lagrange":
+            curve = Curve(points, color, method, self.get_chebyshev_nodes)
+
+        self.curves.append(curve)
+        self.selectCurve(curve) 
+
+    def watchMouseBlock(self):
+        self.block_mouse_click = False
+        if self.menu.elements[8].current_state == self.menu.elements[8].menu_states['expanded']:
+            self.block_mouse_click = True
+
     def start(self): 
-        def get_chebyshev_nodes(points):
-            n = len(points)
-            result = []
-            for k in range(n + 1)[1:]:
-                result.append( 
-                    cos( 
-                        ((2*k - 1) / (2*n)) * pi) )
-            return result
-
-        self.curves.append(Curve(self.user_points, self.colorscheme["blue"], "bezier"))
-        self.curves.append(Curve(self.user_points, self.colorscheme["green"], "spline"))
-        self.curves.append(Curve(self.user_points, self.colorscheme["yellow"], "lagrange", get_chebyshev_nodes))
-    
-
         MODSHIFT = False
         while self.is_running:
+            self.block_mouse_click = False
+            self.watchMouseBlock()
             time_delta = self.clock.tick(60)/1000.0
             for event in pygame.event.get():
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_LSHIFT:
                        MODSHIFT = True
-                    if event.key == pygame.KMOD_CTRL:
-                        MODCTRL = True
                     if event.key == pygame.K_LEFT:
                         self.moving = True
                         self.direction = "left"
@@ -298,6 +319,8 @@ class CurvesEditor:
                         if MODSHIFT:
                             self.rotation_direction = "counter-clockwise"
                         self.pivot = list(pygame.mouse.get_pos())
+                    if event.key == pygame.K_n:
+                        self.addCurve()
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_LSHIFT:
                         self.is_dragging = False
@@ -326,18 +349,20 @@ class CurvesEditor:
                         self.move_points("down")
                     if event.ui_element == self.menu.elements[7]:
                         self.toggle_background_image()
+                if event.type == pygame_gui.UI_DROP_DOWN_MENU_CHANGED:
+                    BLOCK_MOUSE_CLICK = True
                 if event.type == pygame_gui.UI_TEXT_ENTRY_FINISHED:
                     if event.ui_element == self.menu.elements[1]:
                         self.points = self.process_input(self.menu.elements[1].get_text())
                 self.menu.manager.process_events(event)
  
-                if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.type == pygame.MOUSEBUTTONDOWN and self.block_mouse_click == False:
                         if event.button == 2:
                                 self.is_dragging = True
                                 self.index = self.get_point_under_cursor_index()
                         if event.button == 1:
                             if MODSHIFT:
-                                self.select_curve_under_cursor()
+                                self.selectCurve(self.select_curve_under_cursor())
                             else:
                                 self.update(pygame.mouse.get_pos())
                         if event.button == 3:
@@ -370,6 +395,7 @@ class CurvesEditor:
                     self.rotate_point(self.pivot, point, self.rotation_direction)
                 self.update()
                     
+            
             self.render()
 
 curvesEditor = CurvesEditor()
