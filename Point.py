@@ -9,5 +9,5 @@ class Point:
     def getCoordinates(self):
         return [self.x, self.y]
     
-    def draw(self, surface, thickness):
-        pygame.draw.circle(surface, self.color, self.getCoordinates(), thickness)
+    def draw(self, surface, thickness, color):
+        pygame.draw.circle(surface, color, self.getCoordinates(), thickness)

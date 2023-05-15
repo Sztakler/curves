@@ -17,7 +17,7 @@ class Curve:
 
     def draw(self, surface, draw_points=False):
         for point in self.points:
-            point.draw(surface=surface, thickness=3.0)
+            point.draw(surface=surface, thickness=3.0, color=self.color)
 
         if len(self.points) > 1:
             self.curveDrawer.draw(surface, self.color)
@@ -54,6 +54,11 @@ class Curve:
             for point in self.points:
                 point.y += 10
         self.update()
+
+    def move_curve(self, offset):
+        for point in self.points:
+            point.x += offset[0]
+            point.y += offset[1]
 
     def check_if_lies_on(self, point, epsilon=10):
         def distance_squared(p1, p2):

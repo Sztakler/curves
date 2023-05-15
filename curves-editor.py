@@ -79,6 +79,7 @@ class CurvesEditor:
         self.is_background_image_rendered = True
         self.isConvexHullRendered = False
         self.is_dragging = False
+        self.move_curve = False
         self.moving = False
         self.direction = "left"
         self.rotation = False
@@ -360,6 +361,8 @@ class CurvesEditor:
                         if event.button == 2:
                                 self.is_dragging = True
                                 self.index = self.get_point_under_cursor_index()
+                                if MODSHIFT:
+                                    self.move_curve = True
                         if event.button == 1:
                             if MODSHIFT:
                                 self.selectCurve(self.select_curve_under_cursor())
@@ -375,6 +378,7 @@ class CurvesEditor:
                 if event.type == pygame.MOUSEBUTTONUP:
                     if event.button == 2:
                         self.is_dragging = False
+                        self.move_curve = False
                 
             self.menu.manager.update(time_delta)
            
@@ -385,7 +389,13 @@ class CurvesEditor:
                 if self.index != None:
                     mouse_position = pygame.mouse.get_pos()
                     point = Point(mouse_position[0], mouse_position[1])
-                    self.user_points[self.index] = point
+                    selectedPoint = self.user_points[self.index]
+                    if self.move_curve == True:
+                        offset = [mouse_position[0] - selectedPoint.x, mouse_position[1] - selectedPoint.y] 
+                        print(offset)
+                        self.selected_curve.move_curve(offset)
+                    else:
+                        self.user_points[self.index] = point
                     
                 if len(self.user_points) >= 2:
                     self.update()
