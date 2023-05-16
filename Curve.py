@@ -24,10 +24,25 @@ class Curve:
 
         self.convexHull.draw(surface)
 
-    def update(self, points):
+    def append(self, point):
+        self.points.append(point)
+        self.update(self.points)
+
+    def remove(self, point):
+        self.points.remove(point)
+
+    def update(self, points=None):
+        if points == None:
+            points = self.points
         self.points = points
         self.curveDrawer.update(points)
         self.convexHull.update(points)
+
+    def clear(self):
+        self.points = []
+
+    def split(self, t):
+        return self.curveDrawer.split()
 
     def select(self, colorOverride):
         self.color = colorOverride
@@ -42,7 +57,6 @@ class Curve:
             return
 
         self.points[pointIndex].weight += weightDelta
-        print(self.points[pointIndex].weight)
         self.update(self.points)
 
     def move_points(self, direction):

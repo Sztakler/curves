@@ -289,7 +289,6 @@ class CurvesEditor:
         color = (randint(0, 255), randint(0, 255), randint(0, 255), 255) 
         method = "-".join(self.menu.elements[8].selected_option.split(" ")).lower()
         
-        print(points)
         curve = Curve(points, color, method)
         if method == "lagrange":
             curve = Curve(points, color, method, self.get_chebyshev_nodes)
@@ -420,7 +419,6 @@ class CurvesEditor:
                     selectedPoint = self.selected_curve.points[self.index]
                     if self.move_curve == True:
                         offset = [mouse_position[0] - selectedPoint.x, mouse_position[1] - selectedPoint.y] 
-                        print(offset)
                         self.selected_curve.move_curve(offset)
                     else:
                         self.selected_curve.points[self.index] = point

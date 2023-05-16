@@ -14,11 +14,25 @@ def deCasteljau(t, coefficients):
             betas[j] = betas[j] * (1 - t) + betas[j+1] * t
     return betas[0]
 
-
-class BezierGenerator:
+class Generator:
     def __init__(self):
         pass
 
+    def generate(self, points, ts):
+        pass
+    
+    def split(self, coefficients, t):
+        betas = [coefficient for coefficient in coefficients]
+        newCurvesCoefficients = [[betas[0]], [betas[-1]]]
+        n = len(betas)
+        for i in range(1, n):
+            for j in range(n - i):
+                betas[j] = betas[j] * (1 - t) + betas[j+1] * t
+            newCurvesCoefficients[0].append(betas[0])
+            newCurvesCoefficients[1].append(betas[j])
+        return newCurvesCoefficients
+
+class BezierGenerator(Generator):
     def generate(self, points, ts):
         curve = []
         for t in ts:
@@ -41,10 +55,7 @@ class BezierGenerator:
         y = deCasteljau(t, ys)
         return [x, y]
 
-class RationalBezierGenerator:
-    def __init__(self):
-        pass
-
+class RationalBezierGenerator(Generator):
     def generate(self, points, ts):
         curve = []
         for t in ts:

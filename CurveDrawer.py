@@ -58,6 +58,11 @@ class CurveDrawer:
         self.algorithm = self.select_algorithm(self.interpolation_method)
         self.generate_interpolated_curve()
 
+    def split(self):
+        if "bezier" in self.interpolation_method:
+            return self.algorithm.split()
+        else:
+            return None
 
     def draw(self, surface, color):
         if len(self.points) < 2:
