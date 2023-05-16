@@ -30,7 +30,9 @@ class CurveDrawer:
         elif method == "spline":
             return NaturalCubicSplines.NaturalCubicSplines(self.points)
         elif method == "bezier":
-            return BezierCurves.BezierCurve(self.points)
+            return BezierCurves.BezierCurve(self.points, "bezier")
+        elif method == "rational-bezier":
+            return BezierCurves.BezierCurve(self.points, "rational-bezier")
         else:
             return NaturalCubicSplines.NaturalCubicSplines(self.points)
     

@@ -23,7 +23,7 @@ class Curve:
             self.curveDrawer.draw(surface, self.color)
 
         self.convexHull.draw(surface)
-    
+
     def update(self, points):
         self.points = points
         self.curveDrawer.update(points)
@@ -36,6 +36,14 @@ class Curve:
     def deselect(self):
         self.color = self.baseColor
         self.isSelected = False
+
+    def changeSelectedPointWeight(self, weightDelta, pointIndex):
+        if pointIndex == None:
+            return
+
+        self.points[pointIndex].weight += weightDelta
+        print(self.points[pointIndex].weight)
+        self.update(self.points)
 
     def move_points(self, direction):
         if len(self.points) < 1:

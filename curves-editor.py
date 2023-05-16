@@ -61,7 +61,7 @@ class CurvesEditor:
                 pygame_gui.elements.UIButton(relative_rect=pygame.Rect(730,5,100,30), text="MoveUp", manager=None, anchors={'top': 'top', 'left': 'left'}),
                 pygame_gui.elements.UIButton(relative_rect=pygame.Rect(835,5,100,30), text="MoveDown", manager=None, anchors={'top': 'top', 'left': 'left'}),
                 pygame_gui.elements.UIButton(relative_rect=pygame.Rect(940,5,150,30), text="Toggle Image", manager=None, anchors={'top': 'top', 'left': 'left'}),
-                pygame_gui.elements.UIDropDownMenu(relative_rect=pygame.Rect(1100, 5, 200, 30), options_list=["Lagrange", "Spline", "Bezier"], starting_option="Bezier",manager=None, anchors={'top': 'top', 'left': 'left'})
+                pygame_gui.elements.UIDropDownMenu(relative_rect=pygame.Rect(1100, 5, 200, 30), options_list=["Lagrange", "Spline", "Bezier", "Rational Bezier"], starting_option="Bezier",manager=None, anchors={'top': 'top', 'left': 'left'})
             ],
             margin=5,
             padding=5,
@@ -193,13 +193,13 @@ class CurvesEditor:
         collider_surface = pygame.Surface(self.window_size)
         pygame.draw.rect(collider_surface, 'red', collider);
         self.window_surface.blit(collider_surface, mouse_position)
-        for point in self.user_points:
+        for point in self.selected_curve.points:
             if collider.collidepoint(point.x, point.y):
-                return self.user_points.index(point)
+                return self.selected_curve.points.index(point)
         return None        
 
 
-    def get_point_under_cursor(self):
+    def get_point_under_cursor(self, curve=None):
         mouse_position = pygame.mouse.get_pos()
         size = [10, 10]
         collider = pygame.Rect(mouse_position[0] - size[0]/2, mouse_position[1] - size[1]/2, size[0], size[1])
@@ -207,16 +207,24 @@ class CurvesEditor:
         collider_surface = pygame.Surface(self.window_size)
         pygame.draw.rect(collider_surface, 'red', collider);
         self.window_surface.blit(collider_surface, mouse_position)
-        for point in self.user_points:
-            if collider.collidepoint(point.x, point.y):
-                return point
+
+        if curve == None:
+            for curve in self.curves:
+                for point in curve.points:
+                    if collider.collidepoint(point.x, point.y):
+                        return point
+        else:
+            for point in self.selected_curve.points:
+                if collider.collidepoint(point.x, point.y):
+                    return point
         return None        
 
     def select_curve_under_cursor(self):
         mouse_position= pygame.mouse.get_pos()
         epsilon = 10
         for curve in self.curves:
-            if curve.check_if_lies_on(mouse_position, epsilon):
+            point = self.get_point_under_cursor()
+            if curve.check_if_lies_on(mouse_position, epsilon) or point in curve.points:
                 self.selectCurve(curve)
 
 
@@ -245,8 +253,7 @@ class CurvesEditor:
         point.y = new_point.y + pivot[1] 
 
     def toggleHull(self):
-        for curve in self.curves:
-            curve.convexHull.toggleRendering()
+        self.selected_curve.convexHull.toggleRendering()
 
     def clear(self):
         self.user_point = []
@@ -276,7 +283,8 @@ class CurvesEditor:
         self.user_points = []
         points = []
         color = (randint(0, 255), randint(0, 255), randint(0, 255), 255) 
-        method = self.menu.elements[8].selected_option.lower()
+        method = "-".join(self.menu.elements[8].selected_option.split(" ")).lower()
+        print(method)
 
         curve = Curve(points, color, method)
         if method == "lagrange":
@@ -356,7 +364,12 @@ class CurvesEditor:
                     if event.ui_element == self.menu.elements[1]:
                         self.points = self.process_input(self.menu.elements[1].get_text())
                 self.menu.manager.process_events(event)
- 
+
+                if event.type == pygame.MOUSEWHEEL:
+                    weightDelta = event.y
+                    pointIndex = self.get_point_under_cursor_index()
+                    self.selected_curve.changeSelectedPointWeight(weightDelta, pointIndex) 
+
                 if event.type == pygame.MOUSEBUTTONDOWN and self.block_mouse_click == False:
                         if event.button == 2:
                                 self.is_dragging = True
