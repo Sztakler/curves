@@ -1,6 +1,4 @@
-from ctypes.wintypes import RGB
 from copy import deepcopy
-from functools import reduce
 from math import *
 import sys
 from random import randint
@@ -9,7 +7,6 @@ import numpy
 import pygame
 import pygame_gui
 
-import CurveDrawer
 from Curve import Curve
 from Point import Point
 
@@ -22,12 +19,10 @@ class Menu:
         self.margin = margin
         self.padding = padding
         self.height = height
-       
+
     def set_layout(self):
         for i in range(len(self.elements)):
             self.elements[i].manager = self.manager
-
-            
 
 class CurvesEditor:
     def __init__(self):
@@ -289,7 +284,6 @@ class CurvesEditor:
         color = (randint(0, 255), randint(0, 255), randint(0, 255), 255) 
         method = "-".join(self.menu.elements[8].selected_option.split(" ")).lower()
         
-        print(points)
         curve = Curve(points, color, method)
         if method == "lagrange":
             curve = Curve(points, color, method, self.get_chebyshev_nodes)
@@ -343,7 +337,7 @@ class CurvesEditor:
                         self.addCurve(newCurvesPoints[1])
                     if event.key == pygame.K_c:
                         self.copySelectedCurve()
-
+                    
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_LSHIFT:
                         self.is_dragging = False
@@ -352,6 +346,7 @@ class CurvesEditor:
                         self.moving = False
                     if event.key == pygame.K_r:
                         self.rotation = False
+
                 if event.type == pygame.QUIT:
                     self.is_running = False
                 
@@ -388,6 +383,7 @@ class CurvesEditor:
                 if event.type == pygame.MOUSEBUTTONDOWN and self.block_mouse_click == False:
                         if event.button == 2:
                                 self.is_dragging = True
+                                print("dragging")
                                 self.index = self.get_point_under_cursor_index()
                                 if MODSHIFT:
                                     self.move_curve = True
@@ -420,7 +416,6 @@ class CurvesEditor:
                     selectedPoint = self.selected_curve.points[self.index]
                     if self.move_curve == True:
                         offset = [mouse_position[0] - selectedPoint.x, mouse_position[1] - selectedPoint.y] 
-                        print(offset)
                         self.selected_curve.move_curve(offset)
                     else:
                         self.selected_curve.points[self.index] = point
