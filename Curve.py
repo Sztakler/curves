@@ -53,7 +53,7 @@ class Curve:
         self.isSelected = False
 
     def changeSelectedPointWeight(self, weightDelta, pointIndex):
-        if pointIndex == None:
+        if pointIndex == None or self.points[pointIndex].weight + weightDelta < 0:
             return
 
         self.points[pointIndex].weight += weightDelta

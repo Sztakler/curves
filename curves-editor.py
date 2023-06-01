@@ -82,7 +82,7 @@ class CurvesEditor:
         self.rotation_direction = "clockwise"
         self.pivot = None
         self.curves = []
-        self.selected_curve = None
+        self.selected_curve: Curve | None = None
         self.block_mouse_click = False
 
     def hex_to_rgb(self, value):
@@ -243,7 +243,6 @@ class CurvesEditor:
             new_point.x = point.x * cos(angle) - point.y * sin(angle)
             new_point.y = point.x * sin(angle) + point.y * cos(angle)
         
-
         point.x = new_point.x + pivot[0] 
         point.y = new_point.y + pivot[1] 
 
