@@ -9,6 +9,7 @@ import pygame_gui
 
 from Curve import Curve
 from Point import Point
+from InputManager import InputManager
 
 
 
@@ -84,6 +85,8 @@ class CurvesEditor:
         self.curves = []
         self.selected_curve: Curve | None = None
         self.block_mouse_click = False
+        self.configFilePath = "./input-config.json"
+        self.inputManager = InputManager(self.configFilePath)
 
     def hex_to_rgb(self, value):
         value = value.lstrip('#')
@@ -181,6 +184,8 @@ class CurvesEditor:
         self.is_background_image_rendered = not self.is_background_image_rendered
 
     def get_point_under_cursor_index(self):
+        if self.selected_curve == None:
+            return None
         mouse_position = pygame.mouse.get_pos()
         size = [10, 10]
         collider = pygame.Rect(mouse_position[0] - size[0]/2, mouse_position[1] - size[1]/2, size[0], size[1])
@@ -220,7 +225,7 @@ class CurvesEditor:
         for curve in self.curves:
             point = self.get_point_under_cursor()
             if curve.check_if_lies_on(mouse_position, epsilon) or point in curve.points:
-                self.selectCurve(curve)
+                return curve
 
 
     def remove_point(self, point):
@@ -297,6 +302,7 @@ class CurvesEditor:
 
     def start(self): 
         MODSHIFT = False
+        SELECTING_CURVE = False
         while self.is_running:
             self.block_mouse_click = False
             self.watchMouseBlock()
@@ -327,6 +333,17 @@ class CurvesEditor:
                         self.pivot = list(pygame.mouse.get_pos())
                     if event.key == pygame.K_n:
                         self.addCurve([])
+                    if event.key == pygame.K_e:
+                        newCurvesPoints = self.selected_curve.raiseDegree()
+                        if newCurvesPoints == None:
+                            continue
+                        self.selected_curve.update(newCurvesPoints)
+                    if event.key == pygame.K_l:
+                        newCurvesPoints = self.selected_curve.lowerDegree()
+                        if newCurvesPoints != None:
+                            self.selected_curve.update(newCurvesPoints) 
+                    if event.key == pygame.K_j:
+                        SELECTING_CURVE = True
                     if event.key == pygame.K_s:
                         newCurvesPoints = self.selected_curve.split(0.5)
                         if newCurvesPoints == None:
@@ -387,7 +404,14 @@ class CurvesEditor:
                                 if MODSHIFT:
                                     self.move_curve = True
                         if event.button == 1:
-                            if MODSHIFT:
+                            if SELECTING_CURVE:
+                                other_curve = self.select_curve_under_cursor()
+                                print(self.selected_curve, other_curve)
+                                newCurvesPoints = self.selected_curve.join(other_curve)
+                                self.selected_curve.update(newCurvesPoints)
+                                other_curve.update([])
+                                SELECTING_CURVE = False
+                            elif MODSHIFT:
                                 self.selectCurve(self.select_curve_under_cursor())
                             else:
                                 self.update(pygame.mouse.get_pos())

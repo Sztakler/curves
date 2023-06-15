@@ -64,6 +64,21 @@ class CurveDrawer:
         else:
             return None
 
+    def raiseDegree(self):
+        if "bezier" in self.interpolation_method:
+            return self.algorithm.raiseDegree()
+        else:
+            return None
+
+    def lowerDegree(self):
+        if "bezier" in self.interpolation_method:
+            return self.algorithm.lowerDegree()
+
+    def join(self, other):
+        if "bezier" in self.interpolation_method:
+            return self.algorithm.join(other)
+        
+
     def draw(self, surface, color):
         if len(self.points) < 2:
             return

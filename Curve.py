@@ -29,7 +29,8 @@ class Curve:
         self.update(self.points)
 
     def remove(self, point):
-        self.points.remove(point)
+        if point in self.points:
+            self.points.remove(point)
 
     def update(self, points=None):
         if points == None:
@@ -43,6 +44,15 @@ class Curve:
 
     def split(self, t):
         return self.curveDrawer.split()
+
+    def raiseDegree(self):
+        return self.curveDrawer.raiseDegree()
+
+    def lowerDegree(self):
+        return self.curveDrawer.lowerDegree()
+
+    def join(self, other):
+        return self.curveDrawer.join(other)
 
     def select(self, colorOverride):
         self.color = colorOverride
