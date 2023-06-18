@@ -50,3 +50,6 @@ class ConvexHull:
         return self.GrahamScan(points)
       if self.method == HULLMETHOD.QUICK_HULL:
         raise NotImplementedError
+
+    def changeColor(self, color):
+       self.color = color

@@ -2,6 +2,8 @@ import pygame
 import LinearInterpolation 
 import NaturalCubicSplines
 import BezierCurves
+import BSplines
+
 from numpy import linspace
 
 class CurveDrawer:
@@ -33,6 +35,8 @@ class CurveDrawer:
             return BezierCurves.BezierCurve(self.points, "bezier")
         elif method == "rational-bezier":
             return BezierCurves.BezierCurve(self.points, "rational-bezier")
+        elif method == "bspline":
+            return BSplines.BSpline(self.points, 5)
         else:
             return NaturalCubicSplines.NaturalCubicSplines(self.points)
     
@@ -79,11 +83,11 @@ class CurveDrawer:
             return self.algorithm.join(other)
         
 
-    def draw(self, surface, color):
+    def draw(self, surface, color, thickness):
         if len(self.points) < 2:
             return
 
-        pygame.draw.aalines(surface, color, closed=False, points=self.interpolated_curve);
+        pygame.draw.lines(surface, color, closed=False, points=self.interpolated_curve, width=thickness);
         
 
     def print(self):

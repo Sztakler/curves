@@ -1,4 +1,3 @@
-import array
 from Point import Point
 from Generators import BezierGenerator, RationalBezierGenerator
 

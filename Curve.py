@@ -1,5 +1,4 @@
 from ctypes.wintypes import RGB
-from functools import reduce
 from math import *
 from CurveDrawer import CurveDrawer
 from Point import Point
@@ -7,20 +6,22 @@ from ConvexHull import ConvexHull
 from utils import HULLMETHOD
 
 class Curve:
-    def __init__(self, points, color=(255, 255, 255), interpolationMethod="bezier", nodesMethod=None, tsLen=1000, convexHullMethod=HULLMETHOD.GRAHAM_SCAN):
+    def __init__(self, points, color=(255, 255, 255), interpolationMethod="bezier", nodesMethod=None, tsLen=1000, convexHullMethod=HULLMETHOD.GRAHAM_SCAN, pointThickness=3, lineThickness=1):
         self.points = points
         self.curveDrawer = CurveDrawer(user_points=self.points, interpolation_method=interpolationMethod, nodes_method=nodesMethod, ts_len=tsLen)
         self.color = color
         self.baseColor = color
+        self.pointThickness = pointThickness
+        self.lineThickness = lineThickness
         self.isSelected = False
-        self.convexHull = ConvexHull(self.points, (255, 0, 255), convexHullMethod)
+        self.convexHull = ConvexHull(self.points, self.getColorInverse(self.color), convexHullMethod)
 
     def draw(self, surface, draw_points=False):
         for point in self.points:
-            point.draw(surface=surface, thickness=3.0, color=self.color)
+            point.draw(surface=surface, radius=self.pointThickness, thickness=self.pointThickness, color=self.color)   
 
         if len(self.points) > 1:
-            self.curveDrawer.draw(surface, self.color)
+            self.curveDrawer.draw(surface, self.color, self.lineThickness)
 
         self.convexHull.draw(surface)
 
@@ -105,3 +106,17 @@ class Curve:
             if (distance_squared(node0, point) + distance_squared(point, node1) - distance_squared(node0, node1) < epsilon):
                 return True
         return False
+
+    def modifyLineThickness(self, value):
+        self.lineThickness += value
+
+    def modifyPointThickness(self, value):
+        self.pointThickness += value
+
+    def changeColor(self, color):
+        self.color = color[:]
+        self.baseColor = color[:]
+        self.convexHull.changeColor(self.getColorInverse(self.color))
+
+    def getColorInverse(self, color):
+        return (255 - color[0], 255 - color[1], 255 - color[2], color[3])
