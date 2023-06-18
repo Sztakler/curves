@@ -1,7 +1,5 @@
-from Point import Point
 from numpy import linspace
 from math import isnan
-
 
 class BSpline:
     def __init__(self, points, degree):
@@ -51,5 +49,4 @@ class BSpline:
 
         for t in ts:
             curve.append(self.calculatePointDeBoorCox(xs, ys, t))
-        print("curve", curve)
         return curve
