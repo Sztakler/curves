@@ -40,7 +40,7 @@ class BSpline:
         return d[self.degree]
 
     def calculatePointDeBoorCox(self, xs, ys, t):
-        return (self.deBoor(xs, t), self.deBoor(ys, t))
+        return [self.deBoor(xs, t), self.deBoor(ys, t)]
 
     def interpolate(self, ts):
         curve = []

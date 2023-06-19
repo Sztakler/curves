@@ -2,6 +2,10 @@ from copy import deepcopy
 from math import *
 import sys
 from random import randint
+from utils import STATE
+import pickle
+import os
+import datetime
 
 import pygame
 import pygame_gui
@@ -10,6 +14,7 @@ from Curve import Curve
 from Point import Point
 from Image import Image
 from InputManager import InputManager
+from Animator import Animator
 
 
 class Menu:
@@ -21,8 +26,8 @@ class Menu:
         self.height = height
 
     def set_layout(self):
-        for i in range(len(self.elements)):
-            self.elements[i].manager = self.manager
+        for key, value in self.elements.items():
+            value.manager = self.manager
 
 
 class CurvesEditor:
@@ -49,37 +54,35 @@ class CurvesEditor:
         self.window_surface = pygame.display.set_mode(self.window_size)
         self.menu = Menu(
             pygame_gui.UIManager(self.window_size),
-            [
-                pygame_gui.elements.UIButton(relative_rect=pygame.Rect(
+            {
+                "colour": pygame_gui.elements.UIButton(relative_rect=pygame.Rect(
                     5, 5, 100, 30), text="Colour", manager=None, anchors={'top': 'top', 'left': 'left'}),
-                pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect(
-                    110, 5, 300, 30), manager=None, anchors={'top': 'top', 'left': 'left'}),
-                pygame_gui.elements.UIButton(relative_rect=pygame.Rect(
-                    415, 5, 100, 30), text="Clear", manager=None, anchors={'top': 'top', 'left': 'left'}),
-                pygame_gui.elements.UIButton(relative_rect=pygame.Rect(520,5,100,30), text="Load", manager=None, anchors={'top': 'top', 'left': 'left'}),
-                pygame_gui.elements.UIButton(relative_rect=pygame.Rect(
-                    625, 5, 100, 30), text="MoveRight", manager=None, anchors={'top': 'top', 'left': 'left'}),
-                pygame_gui.elements.UIButton(relative_rect=pygame.Rect(
-                    730, 5, 100, 30), text="MoveUp", manager=None, anchors={'top': 'top', 'left': 'left'}),
-                pygame_gui.elements.UIButton(relative_rect=pygame.Rect(
-                    835, 5, 100, 30), text="MoveDown", manager=None, anchors={'top': 'top', 'left': 'left'}),
-                pygame_gui.elements.UIButton(relative_rect=pygame.Rect(
-                    940, 5, 150, 30), text="Toggle Image", manager=None, anchors={'top': 'top', 'left': 'left'}),
-                pygame_gui.elements.UIDropDownMenu(relative_rect=pygame.Rect(1100, 5, 200, 30), options_list=[
-                                                   "Lagrange", "Spline", "Bezier", "Rational Bezier", "BSpline"], starting_option="Bezier", manager=None, anchors={'top': 'top', 'left': 'left'}),
-                pygame_gui.windows.UIColourPickerDialog(
+                "clear": pygame_gui.elements.UIButton(relative_rect=pygame.Rect(
+                    105, 5, 100, 30), text="Clear", manager=None, anchors={'top': 'top', 'left': 'left'}),
+                "load-image": pygame_gui.elements.UIButton(relative_rect=pygame.Rect(205, 5, 150, 30), text="Load Image", manager=None, anchors={'top': 'top', 'left': 'left'}),
+                "load-canvas": pygame_gui.elements.UIButton(relative_rect=pygame.Rect(
+                    355, 5, 150, 30), text="Load Canvas", manager=None, anchors={'top': 'top', 'left': 'left'}),
+                "save-canvas": pygame_gui.elements.UIButton(relative_rect=pygame.Rect(
+                    505, 5, 150, 30), text="Save Canvas", manager=None, anchors={'top': 'top', 'left': 'left'}),
+                "export": pygame_gui.elements.UIButton(relative_rect=pygame.Rect(
+                    655, 5, 100, 30), text="Export", manager=None, anchors={'top': 'top', 'left': 'left'}),
+                "toggle-image": pygame_gui.elements.UIButton(relative_rect=pygame.Rect(
+                    755, 5, 150, 30), text="Toggle Image", manager=None, anchors={'top': 'top', 'left': 'left'}),
+                "curve-type-menu": pygame_gui.elements.UIDropDownMenu(relative_rect=pygame.Rect(905, 5, 200, 30), options_list=[
+                    "Lagrange", "Spline", "Bezier", "Rational Bezier", "BSpline"], starting_option="Bezier", manager=None, anchors={'top': 'top', 'left': 'left'}),
+                "colour-picker-dialog": pygame_gui.windows.UIColourPickerDialog(
                     rect=pygame.Rect(5, 5, 200, 200), visible=0),
-                pygame_gui.windows.UIFileDialog(rect=pygame.Rect(
+                "file-dialog": pygame_gui.windows.UIFileDialog(rect=pygame.Rect(
                     5, 5, 200, 200), manager=None, visible=0),
-            ],
+            },
             margin=5,
             padding=5,
             height=30)
         self.menu.set_layout()
-        self.menu.elements[9].on_close_window_button_pressed = lambda: self.menu.elements[9].hide(
+        self.menu.elements["colour-picker-dialog"].on_close_window_button_pressed = lambda: self.menu.elements["colour-picker-dialog"].hide(
         )
-        self.menu.elements[9].kill = lambda: self.menu.elements[9].hide()
-        self.menu.elements[10].kill = lambda: self.menu.elements[10].hide()
+        self.menu.elements["colour-picker-dialog"].kill = lambda: self.menu.elements["colour-picker-dialog"].hide()
+        self.menu.elements["file-dialog"].kill = lambda: self.menu.elements["file-dialog"].hide()
 
         self.background_image_path = None
         if (len(sys.argv) > 1):
@@ -107,6 +110,8 @@ class CurvesEditor:
         self.inputManager = InputManager(self.configFilePath)
         self.image = Image()
         self.move_image = False
+        self.animator = Animator(duration=5000)
+        self.state = STATE.DEFAULT
 
     def hex_to_rgb(self, value):
         value = value.lstrip('#')
@@ -164,6 +169,8 @@ class CurvesEditor:
         if self.selected_curve != None:
             self.selected_curve.update(self.selected_curve.points)
 
+        self.animator.update()
+
     def render(self):
         if len(self.points) >= 2:
             parametric_curve = pygame.Surface(self.window_size)
@@ -172,8 +179,6 @@ class CurvesEditor:
             self.window_surface.blit(parametric_curve, (0, 0))
 
         self.window_surface.fill(self.colorscheme["bg"])
-        # if self.background_image != None and self.is_background_image_rendered == True:
-        #     self.window_surface.blit(self.background_image, (200, 200))
 
         self.image.draw(surface=self.window_surface)
 
@@ -181,6 +186,8 @@ class CurvesEditor:
             curve.draw(surface=self.window_surface, draw_points=True)
 
         self.menu.manager.draw_ui(self.window_surface)
+
+        self.animator.draw(surface=self.window_surface)
 
         pygame.display.update()
 
@@ -243,6 +250,20 @@ class CurvesEditor:
                 if collider.collidepoint(point.x, point.y):
                     return point
         return None
+
+    def loadCanvas(self, path):
+        with open(path, "rb") as file_pickle:
+            loaded_curves = pickle.load(file_pickle)
+            self.curves += loaded_curves
+
+    def saveCanvas(self, path):
+        if os.path.isfile(path):
+            path = "".join(path.split(".")[:-1]) + "-" + datetime.datetime.now().strftime("%d-%m-%Y_%H:%M:%S") + ".cvs"
+        with open(path, "wb") as file_pickle:
+            pickle.dump(self.curves, file_pickle)
+
+    def export(self, path):
+        pygame.image.save(self.window_surface, path)
 
     def select_curve_under_cursor(self):
         mouse_position = pygame.mouse.get_pos()
@@ -310,9 +331,9 @@ class CurvesEditor:
 
     def addCurve(self, points):
         self.user_points = []
-        color = (randint(0, 255), randint(0, 255), randint(0, 255), 255)
+        color = (randint(30, 255), randint(30, 255), randint(30, 255), 255)
         method = "-".join(
-            self.menu.elements[8].selected_option.split(" ")).lower()
+            self.menu.elements["curve-type-menu"].selected_option.split(" ")).lower()
 
         curve = Curve(points, color, method)
         if method == "lagrange":
@@ -324,9 +345,9 @@ class CurvesEditor:
     def watchInputBlocks(self):
         self.block_mouse = False
         self.block_keyboard = False
-        if self.menu.elements[8].current_state == self.menu.elements[8].menu_states['expanded']:
+        if self.menu.elements["curve-type-menu"].current_state == self.menu.elements["curve-type-menu"].menu_states['expanded']:
             self.block_mouse = True
-        if self.menu.elements[9]._get_visible() or self.menu.elements[10]._get_visible():
+        if self.menu.elements["colour-picker-dialog"]._get_visible() or self.menu.elements["file-dialog"]._get_visible():
             self.block_mouse = True
             self.block_keyboard = True
 
@@ -379,16 +400,23 @@ class CurvesEditor:
                             self.selected_curve.update(newCurvesPoints)
                     if event.key == pygame.K_j:
                         SELECTING_CURVE = True
+                        self.state = STATE.JOINING
+                    if event.key == pygame.K_a:
+                        SELECTING_CURVE = True
+                        self.state = STATE.ANIMATING
+                    if event.key == pygame.K_t:
+                        SELECTING_CURVE = True
+                        self.state = STATE.TRANSFORMING
                     if event.key == pygame.K_i:
                         if self.selected_curve is None:
-                                continue
+                            continue
                         if MODSHIFT:
                             self.selected_curve.modifyPointThickness(-1)
                         else:
                             self.selected_curve.modifyPointThickness(1)
                     if event.key == pygame.K_s:
                         if self.selected_curve is None:
-                                continue
+                            continue
                         newCurvesPoints = self.selected_curve.split(0.5)
                         if newCurvesPoints == None:
                             continue
@@ -413,35 +441,45 @@ class CurvesEditor:
                     self.is_running = False
 
                 if event.type == pygame_gui.UI_BUTTON_PRESSED:
-                    if event.ui_element == self.menu.elements[0]:
-                        self.menu.elements[9].show()
-                    if event.ui_element == self.menu.elements[2]:
+                    if event.ui_element == self.menu.elements["colour"]:
+                        self.menu.elements["colour-picker-dialog"].show()
+                    if event.ui_element == self.menu.elements["clear"]:
                         self.clear()
-                    if event.ui_element == self.menu.elements[3]:
-                        # self.move_points("left")
-                        self.menu.elements[10].show()
-                    if event.ui_element == self.menu.elements[4]:
-                        self.move_points("right")
-                    if event.ui_element == self.menu.elements[5]:
-                        self.move_points("up")
-                    if event.ui_element == self.menu.elements[6]:
-                        self.move_points("down")
-                    if event.ui_element == self.menu.elements[7]:
+                    if event.ui_element == self.menu.elements["load-image"]:
+                        self.menu.elements["file-dialog"].show()
+                        self.state = STATE.LOADINGIMAGE
+                    if event.ui_element == self.menu.elements["load-canvas"]:
+                        self.menu.elements["file-dialog"].show()
+                        self.state = STATE.LOADINGCANVAS
+                    if event.ui_element == self.menu.elements["save-canvas"]:
+                        self.menu.elements["file-dialog"].show()
+                        self.state = STATE.SAVINGCANVAS
+                    if event.ui_element == self.menu.elements["export"]:
+                        self.menu.elements["file-dialog"].show()
+                        self.state = STATE.EXPORTINGFILE
+                    if event.ui_element == self.menu.elements["toggle-image"]:
                         self.image.toggle()
                 if event.type == pygame_gui.UI_COLOUR_PICKER_COLOUR_PICKED:
                     if self.selected_curve is not None:
                         self.selected_curve.changeColor(event.colour)
                 if event.type == pygame_gui.UI_FILE_DIALOG_PATH_PICKED:
-                    self.image.load(event.text)
-                if event.type == pygame_gui.UI_TEXT_ENTRY_FINISHED:
-                    if event.ui_element == self.menu.elements[1]:
-                        print(self.process_input(
-                            self.menu.elements[1].get_text()))
+                    if self.state == STATE.LOADINGIMAGE:
+                        self.image.load(event.text)
+                    if self.state == STATE.SAVINGCANVAS:
+                        self.saveCanvas(event.text)
+                    if self.state == STATE.LOADINGCANVAS:
+                        self.loadCanvas(event.text)
+                    if self.state == STATE.EXPORTINGFILE:
+                        self.export(event.text)
+                # if event.type == pygame_gui.UI_TEXT_ENTRY_FINISHED:
+                #     if event.ui_element == self.menu.elements["text-input"]:
+                #         print(self.process_input(
+                #             self.menu.elements["text-input"].get_text()))
                 self.menu.manager.process_events(event)
 
                 if event.type == pygame.MOUSEWHEEL and not self.block_mouse:
                     if self.selected_curve is None:
-                                continue
+                        continue
                     weightDelta = event.y
                     pointIndex = self.get_point_under_cursor_index()
                     if pointIndex:
@@ -457,7 +495,8 @@ class CurvesEditor:
                     if event.button == 2:
                         self.is_dragging = True
                         self.index = self.get_point_under_cursor_index()
-                        image_collision = self.image.collidepoint(pygame.mouse.get_pos())
+                        image_collision = self.image.collidepoint(
+                            pygame.mouse.get_pos())
                         if MODSHIFT:
                             if self.index is not None:
                                 self.move_curve = True
@@ -468,11 +507,20 @@ class CurvesEditor:
                             if self.selected_curve is None:
                                 continue
                             other_curve = self.select_curve_under_cursor()
-                            newCurvesPoints = self.selected_curve.join(
-                                other_curve)
-                            self.selected_curve.update(newCurvesPoints)
-                            other_curve.update([])
+                            if self.state == STATE.JOINING:
+                                newCurvesPoints = self.selected_curve.join(
+                                    other_curve)
+                                if newCurvesPoints is not None:
+                                    self.selected_curve.update(newCurvesPoints)
+                                    other_curve.update([])
+                            elif self.state == STATE.ANIMATING:
+                                self.animator.transformCurve(
+                                    self.window_surface, self.selected_curve, other_curve)
+                            elif self.state == STATE.TRANSFORMING:
+                                self.animator.transformCurve(
+                                    self.window_surface, self.selected_curve, other_curve, substitute=True)
                             SELECTING_CURVE = False
+                            self.state = STATE.DEFAULT
                         elif MODSHIFT:
                             self.selectCurve(self.select_curve_under_cursor())
                         else:

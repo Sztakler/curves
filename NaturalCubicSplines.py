@@ -77,6 +77,6 @@ class NaturalCubicSplines:
         x = self.map_list(s_x, ts)
         y = self.map_list(s_y, ts)
 
-        points = list(zip(x, y))
+        points = [list(a) for a in (zip(x, y))]
         return points
 

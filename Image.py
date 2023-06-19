@@ -36,5 +36,7 @@ class Image:
         self.position[1] += offset[1]
 
     def collidepoint(self, point):
+        if self.image is None:
+            return False
         rect = self.image.get_rect()
         return point[0] > self.position[0] and point[0] < self.position[0] + rect.width and point[1] > self.position[1] and point[1] < self.position[1] + rect.height

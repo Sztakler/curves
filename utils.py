@@ -3,3 +3,13 @@ from enum import Enum
 class HULLMETHOD(Enum):
    GRAHAM_SCAN = 1
    QUICK_HULL = 2
+
+class STATE(Enum):
+   DEFAULT = 0
+   JOINING = 1
+   ANIMATING = 2
+   TRANSFORMING = 3
+   LOADINGCANVAS = 4
+   SAVINGCANVAS = 5
+   LOADINGIMAGE = 6
+   EXPORTINGFILE = 7

@@ -16,9 +16,10 @@ class Curve:
         self.isSelected = False
         self.convexHull = ConvexHull(self.points, self.getColorInverse(self.color), convexHullMethod)
 
-    def draw(self, surface, draw_points=False):
-        for point in self.points:
-            point.draw(surface=surface, radius=self.pointThickness, thickness=self.pointThickness, color=self.color)   
+    def draw(self, surface, draw_points=True):
+        if draw_points:
+            for point in self.points:
+                point.draw(surface=surface, radius=self.pointThickness, thickness=self.pointThickness, color=self.color)   
 
         if len(self.points) > 1:
             self.curveDrawer.draw(surface, self.color, self.lineThickness)
@@ -53,6 +54,8 @@ class Curve:
         return self.curveDrawer.lowerDegree()
 
     def join(self, other):
+        if other is None:
+            return None
         return self.curveDrawer.join(other)
 
     def select(self, colorOverride):

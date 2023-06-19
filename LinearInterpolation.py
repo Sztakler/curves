@@ -61,5 +61,5 @@ class LinearInterpolation:
         interpolated_xs = calculate_values(xs)
         interpolated_ys = calculate_values(ys)
 
-        interpolated_curve = list(zip(interpolated_xs, interpolated_ys))
+        interpolated_curve = [list(a) for a in (zip(interpolated_xs, interpolated_ys))]
         return interpolated_curve
