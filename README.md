@@ -108,7 +108,7 @@ With the virtual environment activated, install all the required dependencies li
 
 Once the dependencies are installed, you can run the application by executing:
   ```bash
-  python main.py
+  python CurvesEditor.py
   ```
 
 7. Deactivate the virtual environment (optional):
