@@ -20,7 +20,7 @@ class BezierCurve:
 
         curves[0] = [Point(element[0], element[1]) for element in list(zip(curve1_x, curve1_y))]
         curves[1] = [Point(element[0], element[1]) for element in list(zip(curve2_x, curve2_y))]
-
+        curves[1].reverse()
         return curves
 
     def raiseDegree(self):
