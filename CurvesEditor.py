@@ -332,8 +332,9 @@ class CurvesEditor:
     def addCurve(self, points):
         self.user_points = []
         color = (randint(30, 255), randint(30, 255), randint(30, 255), 255)
+        print(self.menu.elements["curve-type-menu"].selected_option)
         method = "-".join(
-            self.menu.elements["curve-type-menu"].selected_option.split(" ")).lower()
+            self.menu.elements["curve-type-menu"].selected_option[0].split(" ")).lower()
 
         curve = Curve(points, color, method)
         if method == "lagrange":
